@@ -1,0 +1,5 @@
+{
+  "comment": "Java verticle",
+  "main": "verticles.SetUpVerticle",
+  "auto-redeploy": true
+}
