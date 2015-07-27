@@ -1,6 +1,7 @@
 package verticles;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -48,7 +49,10 @@ public class RestServerVerticle extends AbstractVerticle {
         if (productID == null) {
             sendError(400, response);
         } else {
-            JsonObject product = products.get(productID);
+            //JsonObject product = products.get(productID);
+            JsonObject product = (JsonObject) mongo.find("products", new JsonObject().put("_id", productID),
+                    AsyncResult::result);
+
             if (product == null) {
                 sendError(404, response);
             } else {
