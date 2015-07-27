@@ -90,14 +90,11 @@
 
     <build>
         <plugins>
-
             <!-- The vert.x Maven plugin -->
             <plugin>
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-maven-plugin</artifactId>
                 <version>${maven.vertx.plugin.version}</version>
-
-
                 <executions>
                     <execution>
                         <id>PullInDeps</id>

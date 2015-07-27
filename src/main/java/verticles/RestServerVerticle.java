@@ -4,6 +4,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -21,8 +22,13 @@ public class RestServerVerticle extends AbstractVerticle {
 
     private Map<String, JsonObject> products = new HashMap<>();
 
+    MongoClient mongo;
+
+
+
     @Override
     public void start() {
+        mongo = MongoClient.createNonShared(vertx, new JsonObject().put("db_name", "demo"));
 
         setUpInitialData();
 
@@ -62,9 +68,27 @@ public class RestServerVerticle extends AbstractVerticle {
                 sendError(400, response);
             } else {
                 products.put(productID, product);
+                JsonObject productAsJson = new JsonObject();
+                productAsJson.put(productID, product);
+                insertInMongo(productAsJson);
                 response.end();
             }
         }
+    }
+
+    private void insertInMongo(JsonObject productAsJson) {
+        mongo.insert("products", productAsJson, res -> {
+
+            if (res.succeeded()) {
+
+                String id = res.result();
+                System.out.println("Inserted product with id " + id);
+
+            } else {
+                res.cause().printStackTrace();
+            }
+        });
+
     }
 
     private void handleListProducts(RoutingContext routingContext) {
