@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
 
-    <groupId>com.beuth</groupId>
+    <groupId>com.foodrater</groupId>
     <artifactId>foodrater</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
@@ -110,6 +110,7 @@
         You only need the part below if you want to build your application into a fat executable jar.
         This is a jar that contains all the dependencies required to run it, so you can just run it with
         java -jar
+
         -->
         <plugins>
             <plugin>
@@ -124,18 +125,15 @@
                         </goals>
                         <configuration>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>com.beuth.verticles.SetUpVerticle</Main-Class>
-                                        <Main-Verticle>com.beuth.verticles.SetUpVerticle</Main-Verticle>
+                                        <Main-Class>io.vertx.core.Starter</Main-Class>
+                                        <Main-Verticle>com.foodrater.verticles.SetUpVerticle</Main-Verticle>
                                     </manifestEntries>
                                 </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                    <resource>META-INF/services/io.vertx.core.spi.VerticleFactory</resource>
-                                </transformer>
                             </transformers>
-                            <artifactSet>
-                            </artifactSet>
+                            <artifactSet/>
                             <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-fat.jar</outputFile>
                         </configuration>
                     </execution>

@@ -1,4 +1,4 @@
-package verticles;
+package com.foodrater.verticles;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
@@ -50,15 +50,28 @@ public class RestServerVerticle extends AbstractVerticle {
             sendError(400, response);
         } else {
             //JsonObject product = products.get(productID);
-            JsonObject product = (JsonObject) mongo.find("products", new JsonObject().put("_id", productID),
-                    AsyncResult::result);
-
+            JsonObject product = findProductInMongoDB(productID);
             if (product == null) {
                 sendError(404, response);
             } else {
                 response.putHeader("content-type", "application/json").end(product.encodePrettily());
             }
         }
+    }
+
+    private JsonObject findProductInMongoDB(String productID) {
+        JsonObject query = new JsonObject();
+        query.put("productID", productID);
+        JsonObject result = new JsonObject();
+
+        mongo.find("products", query, res -> {
+            if (res.succeeded()) {
+                for (JsonObject json : res.result()) {
+                    result.put(productID, json);
+                }
+            }
+        });
+        return result;
     }
 
     private void handleAddProduct(RoutingContext routingContext) {
@@ -81,12 +94,10 @@ public class RestServerVerticle extends AbstractVerticle {
     }
 
     private void insertInMongo(JsonObject productAsJson) {
-        mongo.insert("products", productAsJson, res -> {
+        mongo.insert(("products"), productAsJson, res -> {
 
             if (res.succeeded()) {
-
                 String id = res.result();
-                System.out.println("Inserted product with id " + id);
 
             } else {
                 res.cause().printStackTrace();
@@ -113,5 +124,8 @@ public class RestServerVerticle extends AbstractVerticle {
 
     private void addProduct(JsonObject product) {
         products.put(product.getString("id"), product);
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.put(product.getString("id"), product);
+        insertInMongo(jsonObject);
     }
 }

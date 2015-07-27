@@ -1,4 +1,4 @@
-package verticles;
+package com.foodrater.verticles;
 
 
 import io.vertx.core.AbstractVerticle;
@@ -16,6 +16,6 @@ public class SetUpVerticle extends AbstractVerticle{
 
     @Override
     public void start() {
-        vertx.deployVerticle("RestServerVerticle", new DeploymentOptions().setWorker(true));
+        vertx.deployVerticle("com.foodrater.verticles.RestServerVerticle", new DeploymentOptions().setWorker(true));
     }
 }
