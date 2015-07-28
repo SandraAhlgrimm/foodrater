@@ -4,10 +4,12 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.core.logging.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +21,7 @@ import java.util.Map;
  * https://github.com/SandraKriemann/vertx-examples/blob/master/web-examples/src/main/java/io/vertx/example/web/rest/SimpleREST.java
  */
 public class RestServerVerticle extends AbstractVerticle {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RestServerVerticle.class.getSimpleName());
 
     private Map<String, JsonObject> products = new HashMap<>();
 
@@ -34,12 +37,11 @@ public class RestServerVerticle extends AbstractVerticle {
     MongoClient mongo;
 
 
-
     @Override
     public void start() {
         mongo = MongoClient.createShared(vertx, new JsonObject(DEFAULT_MONGODB_CONFIG));
-
-        setUpInitialData();
+        LOGGER.info("MongoClient is started with this config: " + new JsonObject(DEFAULT_MONGODB_CONFIG).encodePrettily());
+        //setUpInitialData();
 
         Router router = Router.router(vertx);
 
@@ -47,8 +49,15 @@ public class RestServerVerticle extends AbstractVerticle {
         router.get("/products/:productID").handler(this::handleGetProduct);
         router.put("/products/:productID").handler(this::handleAddProduct);
         router.get("/products").handler(this::handleListProducts);
+        router.get("/initialize").handler(this::setUpInitialData);
 
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+    }
+
+    private void setUpInitialData(RoutingContext routingContext) {
+        addProduct(new JsonObject().put("id", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
+        addProduct(new JsonObject().put("id", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
+        addProduct(new JsonObject().put("id", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
     }
 
     private void handleGetProduct(RoutingContext routingContext) {
@@ -75,7 +84,9 @@ public class RestServerVerticle extends AbstractVerticle {
         mongo.find("products", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject json : res.result()) {
+                    LOGGER.info("Found product:" + json.encodePrettily());
                     result.put(productID, json);
+                    LOGGER.info("Result Json:" + result.encodePrettily());
                 }
             }
         });
@@ -124,16 +135,11 @@ public class RestServerVerticle extends AbstractVerticle {
         response.setStatusCode(statusCode).end();
     }
 
-    private void setUpInitialData() {
-        addProduct(new JsonObject().put("id", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
-        addProduct(new JsonObject().put("id", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
-        addProduct(new JsonObject().put("id", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
-    }
-
     private void addProduct(JsonObject product) {
         products.put(product.getString("id"), product);
         JsonObject jsonObject = new JsonObject();
         jsonObject.put(product.getString("id"), product);
+        LOGGER.info("JsonObject to insert: " + jsonObject.encodePrettily());
         insertInMongo(jsonObject);
     }
 }
