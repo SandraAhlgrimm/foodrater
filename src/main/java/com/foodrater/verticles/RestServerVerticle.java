@@ -61,7 +61,6 @@ public class RestServerVerticle extends AbstractVerticle {
 
     private void getUserInformation(RoutingContext routingContext) {
         // return all user info
-
     }
 
     private void getAllProductsForUser(RoutingContext routingContext) {
