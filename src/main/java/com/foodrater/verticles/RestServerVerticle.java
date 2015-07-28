@@ -1,7 +1,6 @@
 package com.foodrater.verticles;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -23,13 +22,22 @@ public class RestServerVerticle extends AbstractVerticle {
 
     private Map<String, JsonObject> products = new HashMap<>();
 
+    public static final String ADDRESS = "mongodb-persistor";
+    public static final String DEFAULT_MONGODB_CONFIG
+            = "{"
+            + "    \"address\": \"" + ADDRESS + "\","
+            + "    \"host\": \"localhost\","
+            + "    \"port\": 27017,"
+            + "    \"db_name\": \"bs\","
+            + "    \"useObjectId\" : true"
+            + "}";
     MongoClient mongo;
 
 
 
     @Override
     public void start() {
-        mongo = MongoClient.createNonShared(vertx, new JsonObject().put("db_name", "demo"));
+        mongo = MongoClient.createShared(vertx, new JsonObject(DEFAULT_MONGODB_CONFIG));
 
         setUpInitialData();
 
