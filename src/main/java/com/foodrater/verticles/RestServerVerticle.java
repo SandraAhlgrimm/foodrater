@@ -48,6 +48,7 @@ public class RestServerVerticle extends AbstractVerticle {
 
         Router router = Router.router(vertx);
 
+        // Needs to be added if you want to access your frontend on the same server
         CorsHandler corsHandler = CorsHandler.create("*");
         corsHandler.allowedMethod(HttpMethod.GET);
         corsHandler.allowedMethod(HttpMethod.POST);
@@ -57,7 +58,6 @@ public class RestServerVerticle extends AbstractVerticle {
         corsHandler.allowedHeader("Content-Type");
         corsHandler.allowedHeader("Access-Control-Allow-Origin");
         corsHandler.allowedHeader("Access-Control-Allow-Headers");
-
         router.route().handler(corsHandler);
 
         router.route().handler(BodyHandler.create());
