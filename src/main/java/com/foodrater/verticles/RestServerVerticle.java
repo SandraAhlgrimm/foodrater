@@ -48,15 +48,6 @@ public class RestServerVerticle extends AbstractVerticle {
 
         Router router = Router.router(vertx);
 
-        router.route().handler(BodyHandler.create());
-        router.get("/products/:productID").handler(this::handleGetProduct);
-        router.get("/products/search/:words").handler(this::searchProduct);
-        router.put("/products/:productID").handler(this::handleAddProduct);
-        router.get("/products").handler(this::handleListProducts);
-        router.get("/initialize").handler(this::setUpInitialData);
-        router.get("/myproducts/:userID").handler(this::getAllProductsForUser);
-        router.get("/user/:userID").handler(this::getUserInformation);
-
         CorsHandler corsHandler = CorsHandler.create("*");
         corsHandler.allowedMethod(HttpMethod.GET);
         corsHandler.allowedMethod(HttpMethod.POST);
@@ -69,6 +60,14 @@ public class RestServerVerticle extends AbstractVerticle {
 
         router.route().handler(corsHandler);
 
+        router.route().handler(BodyHandler.create());
+        router.get("/products/:productID").handler(this::handleGetProduct);
+        router.get("/products/search/:words").handler(this::searchProduct);
+        router.put("/products/:productID").handler(this::handleAddProduct);
+        router.get("/products").handler(this::handleListProducts);
+        router.get("/initialize").handler(this::setUpInitialData);
+        router.get("/myproducts/:userID").handler(this::getAllProductsForUser);
+        router.get("/user/:userID").handler(this::getUserInformation);
 
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
     }
