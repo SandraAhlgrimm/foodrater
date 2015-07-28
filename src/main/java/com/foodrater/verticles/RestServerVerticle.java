@@ -1,6 +1,7 @@
 package com.foodrater.verticles;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -10,6 +11,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.core.logging.Logger;
+import io.vertx.ext.web.handler.CorsHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -54,6 +56,18 @@ public class RestServerVerticle extends AbstractVerticle {
         router.get("/initialize").handler(this::setUpInitialData);
         router.get("/myproducts/:userID").handler(this::getAllProductsForUser);
         router.get("/user/:userID").handler(this::getUserInformation);
+
+        CorsHandler corsHandler = CorsHandler.create("*");
+        corsHandler.allowedMethod(HttpMethod.GET);
+        corsHandler.allowedMethod(HttpMethod.POST);
+        corsHandler.allowedMethod(HttpMethod.PUT);
+        corsHandler.allowedMethod(HttpMethod.DELETE);
+        corsHandler.allowedHeader("Authorization");
+        corsHandler.allowedHeader("Content-Type");
+        corsHandler.allowedHeader("Access-Control-Allow-Origin");
+        corsHandler.allowedHeader("Access-Control-Allow-Headers");
+
+        router.route().handler(corsHandler);
 
 
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
