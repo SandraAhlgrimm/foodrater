@@ -92,15 +92,14 @@ public class RestServerVerticle extends AbstractVerticle {
                             LOGGER.info("Found user:" + json.encodePrettily());
                             response.putHeader("content-type", "application/json").end(json.encodePrettily());
                         }
-                    } else {
-                        LOGGER.error("Couldn't find User.");
-                        sendError(400, response);
                     }
                 });
             } catch (Exception e) {
                 LOGGER.error("Couldn't find User.");
                 sendError(400, response);
             }
+            LOGGER.error("Couldn't find User.");
+            sendError(400, response);
         }
 
     }
