@@ -283,7 +283,7 @@ public class RestServerVerticle extends AbstractVerticle {
                 if (res.succeeded()) {
                     for (JsonObject user : res.result()) {
                         user.put(voting.getString("prodID"), voting);
-                        mongo.insert("user", user, res2 -> {
+                        mongo.insert("users", user, res2 -> {
                             if (res2.succeeded()) {
                                 LOGGER.info("Updatet user with voting: " + voting);
                             }
