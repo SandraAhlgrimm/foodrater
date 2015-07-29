@@ -76,14 +76,15 @@ public class RestServerVerticle extends AbstractVerticle {
     }
 
     private void getUserLogin(RoutingContext routingContext) {
-        String userName = routingContext.request().getParam("username");
-        String pw = routingContext.request().getParam("pw");
         HttpServerResponse response = routingContext.response();
+        try {
+            String userName = routingContext.request().getParam("username");
+            String pw = routingContext.request().getParam("pw");
 
-        if (userName.equals(null) || pw.equals(null) || userName.length() < 1 || pw.length() < 1) {
-            sendError(400, response);
-        } else {
-            try {
+            if (userName.length() < 1 || pw.length() < 1) {
+                LOGGER.info("userName.length() < 1 || pw.length() < 1");
+                sendError(400, response);
+            } else {
                 JsonObject query = new JsonObject().put("user", new JsonObject().put("username", userName).put("pw", pw));
                 LOGGER.info("Trying to find: " + query.encodePrettily());
                 mongo.find("users", query, res -> {
@@ -94,14 +95,11 @@ public class RestServerVerticle extends AbstractVerticle {
                         }
                     }
                 });
-            } catch (Exception e) {
-                LOGGER.error("Couldn't find User.");
-                sendError(400, response);
             }
+        } catch (Exception e) {
             LOGGER.error("Couldn't find User.");
             sendError(400, response);
         }
-
     }
 
 
@@ -220,7 +218,7 @@ public class RestServerVerticle extends AbstractVerticle {
         addProduct(new JsonObject().put("prodID", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
         addProduct(new JsonObject().put("prodID", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
         addProduct(new JsonObject().put("prodID", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
-        insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("username", "Sebastian").put("pw", "123abc"));
+        insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("user", new JsonObject().put("username", "Sebastian").put("pw", "123abc")));
         // + average rating and amount of ratings
         HttpServerResponse response = routingContext.response();
         response.putHeader("content-type", "application/json").end("initialized");
