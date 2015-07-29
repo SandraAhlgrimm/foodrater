@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Controlles the REST Services.
@@ -37,14 +36,15 @@ public class RestServerVerticle extends AbstractVerticle {
             + "    \"host\": \"localhost\","
             + "    \"port\": 27017,"
             + "    \"db_name\": \"bs\","
-            + "    \"useObjectId\" : true"
+            + "    \"useObjectId\" : true,"
+            + "    \"maxIncomingConnections\" : 1"
             + "}";
     MongoClient mongo;
 
 
     @Override
     public void start() {
-        mongo = MongoClient.createShared(vertx, new JsonObject(DEFAULT_MONGODB_CONFIG), "MyPoolName");
+        mongo = MongoClient.createShared(vertx, new JsonObject(DEFAULT_MONGODB_CONFIG));
         LOGGER.info("MongoClient is started with this config: " + new JsonObject(DEFAULT_MONGODB_CONFIG).encodePrettily());
         //setUpInitialData();
 
@@ -68,7 +68,7 @@ public class RestServerVerticle extends AbstractVerticle {
         router.put("/products/:productID").handler(this::handleAddProduct);
         router.get("/products").handler(this::handleListProducts);
         router.get("/initialize").handler(this::setUpInitialData);
-        router.get("/myproducts/:UUID").handler(this::getAllProductsForUser);
+        router.get("/myproducts/:uuid").handler(this::getAllProductsForUser);
         router.get("/users/:userID").handler(this::getUserInformation);
         router.get("/user/login/:username/:pw").handler(this::getUserLogin);
         router.put("/user/register").handler(this::handleAddUser);
@@ -78,16 +78,14 @@ public class RestServerVerticle extends AbstractVerticle {
 
     private void getUserLogin(RoutingContext routingContext) {
         HttpServerResponse response = routingContext.response();
-        try {
-            String userName = routingContext.request().getParam("username");
-            String pw = routingContext.request().getParam("pw");
-            //CountDownLatch latch = new CountDownLatch(1);
+        String userName = routingContext.request().getParam("username");
+        String pw = routingContext.request().getParam("pw");
+        //CountDownLatch latch = new CountDownLatch(1);
 
-            /**if (userName.length() < 1 || pw.length() < 1) {
-             LOGGER.info("userName.length() < 1 || pw.length() < 1");
-             latch.countDown();
-             sendError(400, response);
-             } else {*/
+        if (userName.length() < 1 || pw.length() < 1) {
+            LOGGER.info("userName.length() < 1 || pw.length() < 1");
+            sendError(400, response);
+        } else {
             JsonObject query = new JsonObject().put("username", userName).put("pw", pw);
             LOGGER.info("Trying to find: " + query.encodePrettily());
             mongo.find("users", query, res -> {
@@ -101,16 +99,12 @@ public class RestServerVerticle extends AbstractVerticle {
                     sendError(400, response);
                 }
             });
-            //}
-            /**latch.await(20, TimeUnit.MILLISECONDS);
-             } catch (InterruptedException e) {
-             LOGGER.error("Couldn't find User.");
-             sendError(400, response); */
-             } catch (Exception e) {
-             LOGGER.error("Couldn't find User (with Exception)." + e.getMessage());
-             sendError(400, response);
-             }
         }
+        /**latch.await(20, TimeUnit.MILLISECONDS);
+         } catch (InterruptedException e) {
+         LOGGER.error("Couldn't find User.");
+         sendError(400, response); */
+    }
 
 
     private void handleAddUser(RoutingContext routingContext) {
@@ -149,7 +143,7 @@ public class RestServerVerticle extends AbstractVerticle {
         String uuid = routingContext.request().getParam("uuid");
         HttpServerResponse response = routingContext.response();
         JsonObject query = new JsonObject();
-        query.put("UUID", uuid);
+        query.put("uuid", uuid);
         mongo.find("users", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject json : res.result()) {
