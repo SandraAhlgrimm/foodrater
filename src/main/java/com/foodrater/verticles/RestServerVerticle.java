@@ -84,7 +84,7 @@ public class RestServerVerticle extends AbstractVerticle {
             sendError(400, response);
         } else {
             try {
-                JsonObject query = new JsonObject().put("user", new JsonObject().put("userName", userName).put("pw", pw));
+                JsonObject query = new JsonObject().put("user", new JsonObject().put("username", userName).put("pw", pw));
                 LOGGER.info("Trying to find: " + query.encodePrettily());
                 mongo.find("users", query, res -> {
                     if (res.succeeded()) {
@@ -245,7 +245,7 @@ public class RestServerVerticle extends AbstractVerticle {
         addProduct(new JsonObject().put("prodID", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
         addProduct(new JsonObject().put("prodID", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
         addProduct(new JsonObject().put("prodID", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
-        insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("userName", "Sebastian").put("pw", "123abc"));
+        insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("username", "Sebastian").put("pw", "123abc"));
         // + average rating and amount of ratings
         HttpServerResponse response = routingContext.response();
         response.putHeader("content-type", "application/json").end("initialized");
