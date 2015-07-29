@@ -122,7 +122,12 @@ public class RestServerVerticle extends AbstractVerticle {
     private void handleAddUser(RoutingContext routingContext) {
         // add check, if user already exists
         HttpServerResponse response = routingContext.response();
-        JsonObject user = routingContext.getBodyAsJson();
+        JsonObject user = null;
+        try {
+            user = routingContext.getBodyAsJson();
+        } catch (Exception e) {
+            sendError(400, response);
+        }
         if (user == null) {
             sendError(400, response);
         } else {
@@ -200,15 +205,23 @@ public class RestServerVerticle extends AbstractVerticle {
      */
     private void searchProduct(RoutingContext routingContext) {
         String word = routingContext.request().getParam("word");
-        JsonObject query = new JsonObject(); //.put("name", "/" + word + "/");
+        JsonObject query = new JsonObject().put("name", "/" + word + "/");
         //LOGGER.info("Search in mongodb for this query: " + query.encodePrettily());
         HttpServerResponse response = routingContext.response();
         JsonObject fittingProducts = new JsonObject();
+        CountDownLatch latch = new CountDownLatch(1);
         mongo.find("products", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject foundedProduct : res.result()) {
-                    fittingProducts.put(foundedProduct.getString("productID"), foundedProduct);
                     LOGGER.info("Found Product with search: " + foundedProduct.encodePrettily());
+                    fittingProducts.put(foundedProduct.getJsonObject("product").getString("id"), foundedProduct);
+                    latch.countDown();
+                }
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    LOGGER.error("Couldn't find any with: " + word);
+                    sendError(400, response);
                 }
                 LOGGER.info("Reached that point" + fittingProducts.encodePrettily());
                 response.putHeader("content-type", "application/json").end(fittingProducts.encodePrettily());
@@ -253,7 +266,7 @@ public class RestServerVerticle extends AbstractVerticle {
             if (res.succeeded()) {
                 for (JsonObject json : res.result()) {
                     LOGGER.info("Found product:" + json.encodePrettily());
-                    result.put(productID, json);
+                    result.put("product", json);
                     LOGGER.info("Result Json:" + result.encodePrettily());
                 }
                 latch.countDown();
