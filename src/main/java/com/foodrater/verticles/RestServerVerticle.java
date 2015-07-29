@@ -68,7 +68,7 @@ public class RestServerVerticle extends AbstractVerticle {
         router.get("/products").handler(this::handleListProducts);
         router.get("/initialize").handler(this::setUpInitialData);
         router.get("/myproducts/:userID").handler(this::getAllProductsForUser);
-        router.get("/user/:userID").handler(this::getUserInformation);
+        router.get("/users/:userID").handler(this::getUserInformation);
         router.get("/user/login").handler(this::getUserLogin);
         router.put("/user/register").handler(this::handleAddUser);
 
