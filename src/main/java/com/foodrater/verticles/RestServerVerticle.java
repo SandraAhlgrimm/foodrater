@@ -85,8 +85,10 @@ public class RestServerVerticle extends AbstractVerticle {
         if (userName.equals(null) || pw.equals(null) || userName.length() < 1 || pw.length() < 1) {
             sendError(400, response);
         } else {
-            if (findUserInMongoDB(userName, pw) == null) {
+            if (findUserInMongoDB(userName, pw) != null) {
                 response.putHeader("content-type", "application/json").end((findUserInMongoDB(userName, pw)).encodePrettily());
+            } else {
+                sendError(400, response);
             }
         }
     }
