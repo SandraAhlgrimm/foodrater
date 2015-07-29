@@ -199,7 +199,7 @@ public class RestServerVerticle extends AbstractVerticle {
      */
     private void searchProduct(RoutingContext routingContext) {
         String word = routingContext.request().getParam("word");
-        JsonObject query = new JsonObject().put("name", word);
+        JsonObject query = new JsonObject().put("name", "/" + word + "/");
         HttpServerResponse response = routingContext.response();
         JsonObject fittingProducts = new JsonObject();
         mongo.find("products", query, res -> {
