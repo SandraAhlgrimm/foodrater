@@ -69,28 +69,71 @@ public class RestServerVerticle extends AbstractVerticle {
         router.get("/initialize").handler(this::setUpInitialData);
         router.get("/myproducts/:userID").handler(this::getAllProductsForUser);
         router.get("/user/:userID").handler(this::getUserInformation);
-        router.put("/user/:userID").handler(this::handleAddUser);
+        router.get("/user/login").handler(this::getUserLogin);
+        router.put("/user/register").handler(this::handleAddUser);
 
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
     }
 
-    private void handleAddUser(RoutingContext routingContext) {
-        String userID = routingContext.request().getParam("userID");
+    private void getUserLogin(RoutingContext routingContext) {
+        JsonObject user = routingContext.getBodyAsJson();
+        String userName = user.getString("username");
+        String pw = user.getString("pw");
         HttpServerResponse response = routingContext.response();
-        if (userID == null){
+
+
+        if (userName.equals(null) || pw.equals(null) || userName.length() < 1 || pw.length() < 1) {
             sendError(400, response);
         } else {
-            JsonObject user = routingContext.getBodyAsJson();
-            if (user == null) {
-                sendError(400, response);
-            } else {
-                UUID uuid = new UUID(10000L, 100L);
-                user.put("UUID", uuid);
-                insertUserInMongo(user);
-                response.end();
+            if (findUserInMongoDB(userName, pw) == null) {
+                response.putHeader("content-type", "application/json").end((findUserInMongoDB(userName, pw)).encodePrettily());
             }
+
+        }
+
+    }
+
+    private JsonObject findUserInMongoDB(String userName, String pw) {
+        JsonObject resultedUser = new JsonObject();
+        JsonObject query = new JsonObject();
+        query.put("userName", userName);
+        query.put("pw", pw);
+        CountDownLatch latch = new CountDownLatch(1);
+        mongo.find("users", query, res -> {
+            if (res.succeeded()) {
+                for (JsonObject json : res.result()) {
+                    LOGGER.info("Found user:" + json.encodePrettily());
+                    resultedUser.put(json.getString("uuid"), json);
+                    LOGGER.info("Result Json:" + resultedUser.encodePrettily());
+                }
+            }
+            latch.countDown();
+        });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            LOGGER.error("latch error: " + e.getMessage());
+        }
+
+        LOGGER.info("Final result Json:" + resultedUser.encodePrettily());
+        return resultedUser;
+    }
+
+    private void handleAddUser(RoutingContext routingContext) {
+        // add check, if user already exists
+        HttpServerResponse response = routingContext.response();
+        JsonObject user = routingContext.getBodyAsJson();
+        if (user == null) {
+            sendError(400, response);
+        } else {
+            UUID uuid = new UUID(10000L, 100L);
+            JsonObject newUser = new JsonObject();
+            newUser.put("UUID", uuid);
+            insertUserInMongo(newUser);
+            response.putHeader("content-type", "application/json").end(newUser.encodePrettily());
         }
     }
+
 
     private void insertUserInMongo(JsonObject user) {
         mongo.insert("users", user, stringAsyncResult -> {
@@ -103,7 +146,10 @@ public class RestServerVerticle extends AbstractVerticle {
     }
 
     private void getUserInformation(RoutingContext routingContext) {
-        // return all user info
+        String uuid = routingContext.request().getParam("uuid");
+        HttpServerResponse response = routingContext.response();
+
+
     }
 
     private void getAllProductsForUser(RoutingContext routingContext) {
@@ -119,6 +165,7 @@ public class RestServerVerticle extends AbstractVerticle {
         addProduct(new JsonObject().put("id", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
         addProduct(new JsonObject().put("id", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
         addProduct(new JsonObject().put("id", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
+        insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("userName","Sebastian").put("pw", "123abc"));
         // + average rating and amount of ratings
         HttpServerResponse response = routingContext.response();
         response.putHeader("content-type", "application/json").end("initialized");
@@ -157,12 +204,13 @@ public class RestServerVerticle extends AbstractVerticle {
                 latch.countDown();
             }
         });
-        LOGGER.info("Final result Json:" + result.encodePrettily());
         try {
             latch.await();
         } catch (InterruptedException e) {
             LOGGER.error("latch error: " + e.getMessage());
         }
+
+        LOGGER.info("Final result Json:" + result.encodePrettily());
         return result;
     }
 
@@ -188,7 +236,6 @@ public class RestServerVerticle extends AbstractVerticle {
     private void insertInMongo(JsonObject productAsJson) {
         // calculate average rating + update product database averageRating + update user database add userproducts : {productId : , userRating : }
         mongo.insert(("products"), productAsJson, res -> {
-
             if (res.succeeded()) {
                 String id = res.result();
 
@@ -196,7 +243,6 @@ public class RestServerVerticle extends AbstractVerticle {
                 res.cause().printStackTrace();
             }
         });
-
     }
 
     private void handleListProducts(RoutingContext routingContext) {
