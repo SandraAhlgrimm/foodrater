@@ -154,7 +154,7 @@ public class RestServerVerticle extends AbstractVerticle {
         String uuid = routingContext.request().getParam("uuid");
         HttpServerResponse response = routingContext.response();
         JsonObject query = new JsonObject();
-        query.put("UUID", uuid);
+        query.put("UUID", uuid.toString());
         mongo.find("users", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject json : res.result()) {
