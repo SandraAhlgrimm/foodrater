@@ -128,7 +128,7 @@ public class RestServerVerticle extends AbstractVerticle {
             UUID uuid = new UUID(10000L, 100L);
             JsonObject newUser = new JsonObject();
             newUser.put("UUID", uuid.toString());
-            newUser.put("user", user);
+            newUser.mergeIn(user);
             insertUserInMongo(newUser);
             response.putHeader("content-type", "application/json").end(newUser.encodePrettily());
         }
