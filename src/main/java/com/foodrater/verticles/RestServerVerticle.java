@@ -102,7 +102,7 @@ public class RestServerVerticle extends AbstractVerticle {
         query.put("userName", userName);
         query.put("pw", pw);
         CountDownLatch latch = new CountDownLatch(1);
-        mongo.find("users", query, res -> {
+        mongo.find("users.user", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject json : res.result()) {
                     LOGGER.info("Found user:" + json.encodePrettily());
@@ -283,20 +283,21 @@ public class RestServerVerticle extends AbstractVerticle {
     }
 
     /**
-     * @param routingContext json{
-     *                       uuid: '00-kP'
-     *                       prodID: '426234' # barcode
-     *                       rating: '1' # 1 - 5 || null (für das resetten)
-     *                       lat: '34.65'
-     *                       lng: '-23.523'
-     *                       storeName: 'REWE'
-     *                       }
+     * @param routingContext json{uuid: '00-kP', prodID: '426234', rating: '1', lat: '34.65',
+     *                       lng: '-23.523'storeName: 'REWE' }
+     *
      */
     private void handleAddProduct(RoutingContext routingContext) {
         String productID = routingContext.request().getParam("productID");
         HttpServerResponse response = routingContext.response();
         try {
             JsonObject voting = routingContext.getBodyAsJson();
+            JsonObject query = new JsonObject().put("UUID", voting.getString("uuid"));
+            mongo.find("users", query, res -> {
+                if (res.succeeded()) {
+
+                }
+            });
             if (productID == null) {
                 sendError(400, response);
             } else {
