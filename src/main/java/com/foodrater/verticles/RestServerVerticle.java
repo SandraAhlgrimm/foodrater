@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Controlles the REST Services.
@@ -43,7 +44,7 @@ public class RestServerVerticle extends AbstractVerticle {
 
     @Override
     public void start() {
-        mongo = MongoClient.createShared(vertx, new JsonObject(DEFAULT_MONGODB_CONFIG));
+        mongo = MongoClient.createShared(vertx, new JsonObject(DEFAULT_MONGODB_CONFIG), "MyPoolName");
         LOGGER.info("MongoClient is started with this config: " + new JsonObject(DEFAULT_MONGODB_CONFIG).encodePrettily());
         //setUpInitialData();
 
@@ -80,30 +81,36 @@ public class RestServerVerticle extends AbstractVerticle {
         try {
             String userName = routingContext.request().getParam("username");
             String pw = routingContext.request().getParam("pw");
+            //CountDownLatch latch = new CountDownLatch(1);
 
-            if (userName.length() < 1 || pw.length() < 1) {
-                LOGGER.info("userName.length() < 1 || pw.length() < 1");
-                sendError(400, response);
-            } else {
-                JsonObject query = new JsonObject().put("user", new JsonObject().put("username", userName).put("pw", pw));
-                LOGGER.info("Trying to find: " + query.encodePrettily());
-                mongo.find("users", query, res -> {
-                    if (res.succeeded()) {
-                        for (JsonObject json : res.result()) {
-                            LOGGER.info("Found user:" + json.encodePrettily());
-                            response.putHeader("content-type", "application/json").end(json.encodePrettily());
-                        }
-                    } if (res.failed()) {
-                        LOGGER.error("Couldn't find User.");
-                        sendError(400, response);
+            /**if (userName.length() < 1 || pw.length() < 1) {
+             LOGGER.info("userName.length() < 1 || pw.length() < 1");
+             latch.countDown();
+             sendError(400, response);
+             } else {*/
+            JsonObject query = new JsonObject().put("username", userName).put("pw", pw);
+            LOGGER.info("Trying to find: " + query.encodePrettily());
+            mongo.find("users", query, res -> {
+                if (res.succeeded()) {
+                    for (JsonObject json : res.result()) {
+                        LOGGER.info("Found user:" + json.encodePrettily());
+                        //latch.countDown();
+                        response.putHeader("content-type", "application/json").end(json.encodePrettily());
                     }
-                });
-            }
-        } catch (Exception e) {
-            LOGGER.error("Couldn't find User.");
-            sendError(400, response);
+                } else {
+                    sendError(400, response);
+                }
+            });
+            //}
+            /**latch.await(20, TimeUnit.MILLISECONDS);
+             } catch (InterruptedException e) {
+             LOGGER.error("Couldn't find User.");
+             sendError(400, response); */
+             } catch (Exception e) {
+             LOGGER.error("Couldn't find User (with Exception)." + e.getMessage());
+             sendError(400, response);
+             }
         }
-    }
 
 
     private void handleAddUser(RoutingContext routingContext) {
@@ -202,8 +209,8 @@ public class RestServerVerticle extends AbstractVerticle {
             if (res.succeeded()) {
                 for (JsonObject foundedProduct : res.result()) {
                     LOGGER.info("Found Product with search: " + foundedProduct.encodePrettily());
-                    fittingProducts.put(foundedProduct.getJsonObject("product").getString("id"), foundedProduct);
                     latch.countDown();
+                    fittingProducts.put(foundedProduct.getJsonObject("product").getString("id"), foundedProduct);
                 }
                 try {
                     latch.await();
@@ -221,7 +228,7 @@ public class RestServerVerticle extends AbstractVerticle {
         addProduct(new JsonObject().put("prodID", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
         addProduct(new JsonObject().put("prodID", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
         addProduct(new JsonObject().put("prodID", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
-        insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("user", new JsonObject().put("username", "Sebastian").put("pw", "123abc")));
+        insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("username", "Sebastian").put("pw", "123abc"));
         // + average rating and amount of ratings
         HttpServerResponse response = routingContext.response();
         response.putHeader("content-type", "application/json").end("initialized");
