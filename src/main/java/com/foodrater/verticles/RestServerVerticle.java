@@ -181,11 +181,11 @@ public class RestServerVerticle extends AbstractVerticle {
         mongo.find("users", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject userJson : res.result()) {
-                    JsonObject query2 = new JsonObject().put("productID", userJson.getString("productID"));
+                    JsonObject query2 = new JsonObject().put("prodID", userJson.getString("prodID"));
                     mongo.find("products", query2, res2 -> {
                         if (res2.succeeded()) {
                             for (JsonObject product : res2.result()) {
-                                allProducts.put(userJson.getString("productID"), product);
+                                allProducts.put(userJson.getString("prodID"), product);
                             }
                         }
                     });
@@ -230,9 +230,9 @@ public class RestServerVerticle extends AbstractVerticle {
     }
 
     private void setUpInitialData(RoutingContext routingContext) {
-        addProduct(new JsonObject().put("id", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
-        addProduct(new JsonObject().put("id", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
-        addProduct(new JsonObject().put("id", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
+        addProduct(new JsonObject().put("prodID", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
+        addProduct(new JsonObject().put("prodID", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
+        addProduct(new JsonObject().put("prodID", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
         insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("userName", "Sebastian").put("pw", "123abc"));
         // + average rating and amount of ratings
         HttpServerResponse response = routingContext.response();
@@ -257,7 +257,7 @@ public class RestServerVerticle extends AbstractVerticle {
 
     private JsonObject findProductInMongoDB(String productID) {
         JsonObject query = new JsonObject();
-        query.put(productID + ".id", productID);
+        query.put(productID + ".prodID", productID);
         JsonObject result = new JsonObject();
         CountDownLatch latch = new CountDownLatch(1);
 
@@ -285,33 +285,25 @@ public class RestServerVerticle extends AbstractVerticle {
     /**
      * @param routingContext json{uuid: '00-kP', prodID: '426234', rating: '1', lat: '34.65',
      *                       lng: '-23.523'storeName: 'REWE' }
-     *
      */
     private void handleAddProduct(RoutingContext routingContext) {
-        String productID = routingContext.request().getParam("productID");
         HttpServerResponse response = routingContext.response();
         try {
             JsonObject voting = routingContext.getBodyAsJson();
             JsonObject query = new JsonObject().put("UUID", voting.getString("uuid"));
             mongo.find("users", query, res -> {
                 if (res.succeeded()) {
-
+                    for (JsonObject user : res.result()) {
+                        user.put(voting.getString("prodID"), voting);
+                        mongo.insert("user", user, res2 -> {
+                            if (res2.succeeded()) {
+                                LOGGER.info("Updatet user with voting: " + voting);
+                                response.end();
+                            }
+                        });
+                    }
                 }
             });
-            if (productID == null) {
-                sendError(400, response);
-            } else {
-                JsonObject product = routingContext.getBodyAsJson(); // change product to user
-                if (product == null) {
-                    sendError(400, response);
-                } else {
-                    products.put(productID, product);
-                    JsonObject productAsJson = new JsonObject();
-                    productAsJson.put(productID, product);
-                    insertInMongo(productAsJson);
-                    response.end();
-                }
-            }
         } catch (Exception e) {
             sendError(400, response);
         }
@@ -340,9 +332,9 @@ public class RestServerVerticle extends AbstractVerticle {
     }
 
     private void addProduct(JsonObject product) {
-        products.put(product.getString("id"), product);
+        products.put(product.getString("prodID"), product);
         JsonObject jsonObject = new JsonObject();
-        jsonObject.put(product.getString("id"), product);
+        jsonObject.put(product.getString("prodID"), product);
         LOGGER.info("JsonObject to insert: " + jsonObject.encodePrettily());
         insertInMongo(jsonObject);
     }
