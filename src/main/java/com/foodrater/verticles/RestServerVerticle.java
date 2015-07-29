@@ -15,11 +15,12 @@ import io.vertx.ext.web.handler.CorsHandler;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 /**
  * Controlles the REST Services.
- *
+ * <p>
  * Created by sandra.kriemann on 26.07.15.
  * https://github.com/SandraKriemann/vertx-examples/blob/master/web-examples/src/main/java/io/vertx/example/web/rest/SimpleREST.java
  */
@@ -68,8 +69,37 @@ public class RestServerVerticle extends AbstractVerticle {
         router.get("/initialize").handler(this::setUpInitialData);
         router.get("/myproducts/:userID").handler(this::getAllProductsForUser);
         router.get("/user/:userID").handler(this::getUserInformation);
+        router.put("/user/:userID").handler(this::handleAddUser);
 
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+    }
+
+    private void handleAddUser(RoutingContext routingContext) {
+        String userID = routingContext.request().getParam("userID");
+        HttpServerResponse response = routingContext.response();
+        if (userID == null){
+            sendError(400, response);
+        } else {
+            JsonObject user = routingContext.getBodyAsJson();
+            if (user == null) {
+                sendError(400, response);
+            } else {
+                UUID uuid = new UUID(10000L, 100L);
+                user.put("UUID", uuid);
+                insertUserInMongo(user);
+                response.end();
+            }
+        }
+    }
+
+    private void insertUserInMongo(JsonObject user) {
+        mongo.insert("users", user, stringAsyncResult -> {
+            if (stringAsyncResult.succeeded()) {
+                LOGGER.info("Inserted user into mongoDB: " + user.encodePrettily());
+            } else {
+                LOGGER.error("Could not insert user into mongoDB: " + user.encodePrettily());
+            }
+        });
     }
 
     private void getUserInformation(RoutingContext routingContext) {
@@ -116,7 +146,6 @@ public class RestServerVerticle extends AbstractVerticle {
         JsonObject result = new JsonObject();
         CountDownLatch latch = new CountDownLatch(1);
 
-
         LOGGER.info("Trying to find " + query.encodePrettily());
         mongo.find("products", query, res -> {
             if (res.succeeded()) {
@@ -125,9 +154,8 @@ public class RestServerVerticle extends AbstractVerticle {
                     result.put(productID, json);
                     LOGGER.info("Result Json:" + result.encodePrettily());
                 }
+                latch.countDown();
             }
-            latch.countDown();
-
         });
         LOGGER.info("Final result Json:" + result.encodePrettily());
         try {
