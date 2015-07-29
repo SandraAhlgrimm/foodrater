@@ -133,7 +133,7 @@ public class RestServerVerticle extends AbstractVerticle {
         } else {
             UUID uuid = new UUID(10000L, 100L);
             JsonObject newUser = new JsonObject();
-            newUser.put("UUID", uuid);
+            newUser.put("UUID", uuid.toString());
             insertUserInMongo(newUser);
             response.putHeader("content-type", "application/json").end(newUser.encodePrettily());
         }
@@ -154,7 +154,7 @@ public class RestServerVerticle extends AbstractVerticle {
         String uuid = routingContext.request().getParam("uuid");
         HttpServerResponse response = routingContext.response();
         JsonObject query = new JsonObject();
-        query.put("UUID", uuid.toString());
+        query.put("UUID", uuid);
         mongo.find("users", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject json : res.result()) {
