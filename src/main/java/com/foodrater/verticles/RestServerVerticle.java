@@ -90,7 +90,7 @@ public class RestServerVerticle extends AbstractVerticle {
                     if (res.succeeded()) {
                         for (JsonObject json : res.result()) {
                             LOGGER.info("Found user:" + json.encodePrettily());
-                            json.put(json.getString("uuid"), json);
+                            json.put(json.getString("UUID"), json);
                             response.putHeader("content-type", "application/json").end(json.encodePrettily());
                         }
                     } else {
@@ -108,27 +108,6 @@ public class RestServerVerticle extends AbstractVerticle {
 
     }
 
-    private JsonObject findUserInMongoDB(String userName, String pw) throws InterruptedException {
-        JsonObject resultedUser = new JsonObject();
-        JsonObject query = new JsonObject();
-        query.put("user.userName", userName);
-        query.put("user.pw", pw);
-        CountDownLatch latch = new CountDownLatch(1);
-        mongo.find("users", query, res -> {
-            if (res.succeeded()) {
-                for (JsonObject json : res.result()) {
-                    LOGGER.info("Found user:" + json.encodePrettily());
-                    resultedUser.put(json.getString("uuid"), json);
-                    LOGGER.info("Result Json:" + resultedUser.encodePrettily());
-                }
-            }
-            latch.countDown();
-        });
-        latch.await();
-
-        LOGGER.info("Final result Json:" + resultedUser.encodePrettily());
-        return resultedUser;
-    }
 
     private void handleAddUser(RoutingContext routingContext) {
         // add check, if user already exists
