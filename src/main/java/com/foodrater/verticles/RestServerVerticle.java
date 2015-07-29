@@ -99,10 +99,10 @@ public class RestServerVerticle extends AbstractVerticle {
     private JsonObject findUserInMongoDB(String userName, String pw) throws InterruptedException {
         JsonObject resultedUser = new JsonObject();
         JsonObject query = new JsonObject();
-        query.put("userName", userName);
-        query.put("pw", pw);
+        query.put("user.userName", userName);
+        query.put("user.pw", pw);
         CountDownLatch latch = new CountDownLatch(1);
-        mongo.find("users.user", query, res -> {
+        mongo.find("users", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject json : res.result()) {
                     LOGGER.info("Found user:" + json.encodePrettily());
