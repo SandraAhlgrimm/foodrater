@@ -84,15 +84,20 @@ public class RestServerVerticle extends AbstractVerticle {
         if (userName.equals(null) || pw.equals(null) || userName.length() < 1 || pw.length() < 1) {
             sendError(400, response);
         } else {
-            if (findUserInMongoDB(userName, pw) != null) {
-                response.putHeader("content-type", "application/json").end((findUserInMongoDB(userName, pw)).encodePrettily());
-            } else {
+            try {
+                if (findUserInMongoDB(userName, pw) != null) {
+                    response.putHeader("content-type", "application/json").end((findUserInMongoDB(userName, pw)).encodePrettily());
+                } else {
+                    sendError(400, response);
+                }
+            } catch (InterruptedException e) {
+                LOGGER.error("Couldn't find User.");
                 sendError(400, response);
             }
         }
     }
 
-    private JsonObject findUserInMongoDB(String userName, String pw) {
+    private JsonObject findUserInMongoDB(String userName, String pw) throws InterruptedException {
         JsonObject resultedUser = new JsonObject();
         JsonObject query = new JsonObject();
         query.put("userName", userName);
@@ -108,11 +113,7 @@ public class RestServerVerticle extends AbstractVerticle {
             }
             latch.countDown();
         });
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            LOGGER.error("latch error: " + e.getMessage());
-        }
+        latch.await();
 
         LOGGER.info("Final result Json:" + resultedUser.encodePrettily());
         return resultedUser;
@@ -199,18 +200,20 @@ public class RestServerVerticle extends AbstractVerticle {
      */
     private void searchProduct(RoutingContext routingContext) {
         String word = routingContext.request().getParam("word");
-        JsonObject query = new JsonObject().put("name", "/" + word + "/");
+        JsonObject query = new JsonObject(); //.put("name", "/" + word + "/");
+        //LOGGER.info("Search in mongodb for this query: " + query.encodePrettily());
         HttpServerResponse response = routingContext.response();
         JsonObject fittingProducts = new JsonObject();
         mongo.find("products", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject foundedProduct : res.result()) {
-                   fittingProducts.put(foundedProduct.getString("productID"), foundedProduct);
+                    fittingProducts.put(foundedProduct.getString("productID"), foundedProduct);
+                    LOGGER.info("Found Product with search: " + foundedProduct.encodePrettily());
                 }
+                LOGGER.info("Reached that point" + fittingProducts.encodePrettily());
                 response.putHeader("content-type", "application/json").end(fittingProducts.encodePrettily());
             }
         });
-
     }
 
     private void setUpInitialData(RoutingContext routingContext) {
