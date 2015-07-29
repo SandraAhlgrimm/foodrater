@@ -63,7 +63,7 @@ public class RestServerVerticle extends AbstractVerticle {
 
         router.route().handler(BodyHandler.create());
         router.get("/products/:productID").handler(this::handleGetProduct);
-        router.get("/products/search/:words").handler(this::searchProduct);
+        router.get("/products/search/:word").handler(this::searchProduct);
         router.put("/products/:productID").handler(this::handleAddProduct);
         router.get("/products").handler(this::handleListProducts);
         router.get("/initialize").handler(this::setUpInitialData);
@@ -80,7 +80,6 @@ public class RestServerVerticle extends AbstractVerticle {
         String userName = user.getString("username");
         String pw = user.getString("pw");
         HttpServerResponse response = routingContext.response();
-
 
         if (userName.equals(null) || pw.equals(null) || userName.length() < 1 || pw.length() < 1) {
             sendError(400, response);
@@ -162,35 +161,56 @@ public class RestServerVerticle extends AbstractVerticle {
         });
     }
 
+    /**
+     * response all products for user as json ->  {prodId:{productjson1}, {productjson2}, ... }
+     *
+     * @param routingContext incoming RotingContext with param UUID
+     */
     private void getAllProductsForUser(RoutingContext routingContext) {
-        // return all products for user as json ->  {prodId:{productjson1}, {productjson2}, ... }
         String uuid = routingContext.request().getParam("UUID");
         JsonObject query = new JsonObject().put("UUID", uuid);
         HttpServerResponse response = routingContext.response();
         JsonObject allProducts = new JsonObject();
 
-        mongo.find("users", query, res ->{
+        mongo.find("users", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject userJson : res.result()) {
                     JsonObject query2 = new JsonObject().put("productID", userJson.getString("productID"));
                     mongo.find("products", query2, res2 -> {
                         if (res2.succeeded()) {
-                            for (JsonObject product : res2.result()){
+                            for (JsonObject product : res2.result()) {
                                 allProducts.put(userJson.getString("productID"), product);
                             }
                         }
                     });
                 }
-            response.putHeader("content-type", "application/json").end(allProducts.encodePrettily());
+                response.putHeader("content-type", "application/json").end(allProducts.encodePrettily());
             } else {
                 sendError(400, response);
             }
         });
     }
 
+    /**
+     * response all products with name inside as json
+     * { {product1}, {product2}, {product3}.. }
+     *
+     * @param routingContext incoming RotingContext with param search-word
+     */
     private void searchProduct(RoutingContext routingContext) {
-        // return all products with name inside as json
-        // { {product1}, {product2}, {product3}.. }
+        String word = routingContext.request().getParam("word");
+        JsonObject query = new JsonObject().put("name", word);
+        HttpServerResponse response = routingContext.response();
+        JsonObject fittingProducts = new JsonObject();
+        mongo.find("products", query, res -> {
+            if (res.succeeded()) {
+                for (JsonObject foundedProduct : res.result()) {
+                   fittingProducts.put(foundedProduct.getString("productID"), foundedProduct);
+                }
+                response.putHeader("content-type", "application/json").end(fittingProducts.encodePrettily());
+            }
+        });
+
     }
 
     private void setUpInitialData(RoutingContext routingContext) {
