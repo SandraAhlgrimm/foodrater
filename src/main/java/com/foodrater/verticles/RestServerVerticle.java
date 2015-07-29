@@ -67,7 +67,7 @@ public class RestServerVerticle extends AbstractVerticle {
         router.put("/products/:productID").handler(this::handleAddProduct);
         router.get("/products").handler(this::handleListProducts);
         router.get("/initialize").handler(this::setUpInitialData);
-        router.get("/myproducts/:userID").handler(this::getAllProductsForUser);
+        router.get("/myproducts/:UUID").handler(this::getAllProductsForUser);
         router.get("/users/:userID").handler(this::getUserInformation);
         router.get("/user/login").handler(this::getUserLogin);
         router.put("/user/register").handler(this::handleAddUser);
@@ -88,9 +88,7 @@ public class RestServerVerticle extends AbstractVerticle {
             if (findUserInMongoDB(userName, pw) == null) {
                 response.putHeader("content-type", "application/json").end((findUserInMongoDB(userName, pw)).encodePrettily());
             }
-
         }
-
     }
 
     private JsonObject findUserInMongoDB(String userName, String pw) {
@@ -164,6 +162,28 @@ public class RestServerVerticle extends AbstractVerticle {
 
     private void getAllProductsForUser(RoutingContext routingContext) {
         // return all products for user as json ->  {prodId:{productjson1}, {productjson2}, ... }
+        String uuid = routingContext.request().getParam("UUID");
+        JsonObject query = new JsonObject().put("UUID", uuid);
+        HttpServerResponse response = routingContext.response();
+        JsonObject allProducts = new JsonObject();
+
+        mongo.find("users", query, res ->{
+            if (res.succeeded()) {
+                for (JsonObject userJson : res.result()) {
+                    JsonObject query2 = new JsonObject().put("productID", userJson.getString("productID"));
+                    mongo.find("products", query2, res2 -> {
+                        if (res2.succeeded()) {
+                            for (JsonObject product : res2.result()){
+                                allProducts.put(userJson.getString("productID"), product);
+                            }
+                        }
+                    });
+                }
+            response.putHeader("content-type", "application/json").end(allProducts.encodePrettily());
+            } else {
+                sendError(400, response);
+            }
+        });
     }
 
     private void searchProduct(RoutingContext routingContext) {
