@@ -69,16 +69,15 @@ public class RestServerVerticle extends AbstractVerticle {
         router.get("/initialize").handler(this::setUpInitialData);
         router.get("/myproducts/:UUID").handler(this::getAllProductsForUser);
         router.get("/users/:userID").handler(this::getUserInformation);
-        router.get("/user/login").handler(this::getUserLogin);
+        router.get("/user/login/:username/:pw").handler(this::getUserLogin);
         router.put("/user/register").handler(this::handleAddUser);
 
         vertx.createHttpServer().requestHandler(router::accept).listen(8080);
     }
 
     private void getUserLogin(RoutingContext routingContext) {
-        JsonObject user = routingContext.getBodyAsJson();
-        String userName = user.getString("username");
-        String pw = user.getString("pw");
+        String userName = routingContext.request().getParam("username");
+        String pw = routingContext.request().getParam("pw");
         HttpServerResponse response = routingContext.response();
 
         if (userName.equals(null) || pw.equals(null) || userName.length() < 1 || pw.length() < 1) {
@@ -283,22 +282,37 @@ public class RestServerVerticle extends AbstractVerticle {
         return result;
     }
 
+    /**
+     * @param routingContext json{
+     *                       uuid: '00-kP'
+     *                       prodID: '426234' # barcode
+     *                       rating: '1' # 1 - 5 || null (für das resetten)
+     *                       lat: '34.65'
+     *                       lng: '-23.523'
+     *                       storeName: 'REWE'
+     *                       }
+     */
     private void handleAddProduct(RoutingContext routingContext) {
         String productID = routingContext.request().getParam("productID");
         HttpServerResponse response = routingContext.response();
-        if (productID == null) {
-            sendError(400, response);
-        } else {
-            JsonObject product = routingContext.getBodyAsJson(); // change product to user
-            if (product == null) {
+        try {
+            JsonObject voting = routingContext.getBodyAsJson();
+            if (productID == null) {
                 sendError(400, response);
             } else {
-                products.put(productID, product);
-                JsonObject productAsJson = new JsonObject();
-                productAsJson.put(productID, product);
-                insertInMongo(productAsJson);
-                response.end();
+                JsonObject product = routingContext.getBodyAsJson(); // change product to user
+                if (product == null) {
+                    sendError(400, response);
+                } else {
+                    products.put(productID, product);
+                    JsonObject productAsJson = new JsonObject();
+                    productAsJson.put(productID, product);
+                    insertInMongo(productAsJson);
+                    response.end();
+                }
             }
+        } catch (Exception e) {
+            sendError(400, response);
         }
     }
 
