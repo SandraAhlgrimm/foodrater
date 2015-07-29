@@ -87,6 +87,7 @@ public class RestServerVerticle extends AbstractVerticle {
                 JsonObject query = new JsonObject();
                 query.put("user.userName", userName);
                 query.put("user.pw", pw);
+                LOGGER.info("Trying to find: " + query.encodePrettily());
                 mongo.find("users", query, res -> {
                     if (res.succeeded()) {
                         for (JsonObject json : res.result()) {
