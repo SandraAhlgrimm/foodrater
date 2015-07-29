@@ -148,8 +148,18 @@ public class RestServerVerticle extends AbstractVerticle {
     private void getUserInformation(RoutingContext routingContext) {
         String uuid = routingContext.request().getParam("uuid");
         HttpServerResponse response = routingContext.response();
-
-
+        JsonObject query = new JsonObject();
+        query.put("UUID", uuid);
+        mongo.find("users", query, res -> {
+            if (res.succeeded()) {
+                for (JsonObject json : res.result()) {
+                    LOGGER.info("Found user:" + json.encodePrettily());
+                    response.putHeader("content-type", "application/json").end(json.encodePrettily());
+                }
+            } else {
+                sendError(400, response);
+            }
+        });
     }
 
     private void getAllProductsForUser(RoutingContext routingContext) {
@@ -165,7 +175,7 @@ public class RestServerVerticle extends AbstractVerticle {
         addProduct(new JsonObject().put("id", "prod3568").put("name", "Egg Whisk").put("price", 3.99).put("weight", 150));
         addProduct(new JsonObject().put("id", "prod7340").put("name", "Tea Cosy").put("price", 5.99).put("weight", 100));
         addProduct(new JsonObject().put("id", "prod8643").put("name", "Spatula").put("price", 1.00).put("weight", 80));
-        insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("userName","Sebastian").put("pw", "123abc"));
+        insertUserInMongo(new JsonObject().put("uuid", (new UUID(10L, 1000L)).toString()).put("userName", "Sebastian").put("pw", "123abc"));
         // + average rating and amount of ratings
         HttpServerResponse response = routingContext.response();
         response.putHeader("content-type", "application/json").end("initialized");
