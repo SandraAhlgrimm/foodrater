@@ -298,9 +298,36 @@ public class RestServerVerticle extends AbstractVerticle {
                         mongo.insert("user", user, res2 -> {
                             if (res2.succeeded()) {
                                 LOGGER.info("Updatet user with voting: " + voting);
-                                response.end();
                             }
                         });
+                    }
+                }
+            });
+
+            JsonObject query2 = new JsonObject().put("prodID", voting.getString("prodID"));
+            mongo.find("products", query2, res3 -> {
+                if (res3.succeeded()) {
+                    for (JsonObject product : res3.result()) {
+                        if (product.containsKey("rating") && product.containsKey("amount")) {
+                            Float rating = Float.parseFloat(product.getString("rating"));
+                            Integer amount = Integer.parseInt(product.getString("amount"));
+                            Float newRating = rating * amount + Integer.parseInt(voting.getString("rating"));
+                            newRating /= amount + 1;
+                            amount += 1;
+                            product.put("rating", newRating.toString());
+                            product.put("amount", amount.toString());
+                            mongo.insert("products", product, res4 -> {
+                                LOGGER.info("Updated product:" + product);
+                                response.end();
+                            });
+                        } else {
+                            product.put("rating", voting.getString("rating"));
+                            product.put("amount", "1");
+                            mongo.insert("products", product, res5 -> {
+                                LOGGER.info("Inserted Ranking for product:" + product);
+                                response.end();
+                            });
+                        }
                     }
                 }
             });
