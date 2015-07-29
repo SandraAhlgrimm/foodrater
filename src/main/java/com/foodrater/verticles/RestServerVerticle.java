@@ -104,6 +104,8 @@ public class RestServerVerticle extends AbstractVerticle {
                 LOGGER.error("Couldn't find User.");
                 sendError(400, response);
             }
+            LOGGER.error("Couldn't find User.");
+            sendError(400, response);
         }
 
     }
