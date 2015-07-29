@@ -90,7 +90,6 @@ public class RestServerVerticle extends AbstractVerticle {
                     if (res.succeeded()) {
                         for (JsonObject json : res.result()) {
                             LOGGER.info("Found user:" + json.encodePrettily());
-                            json.put(json.getString("UUID"), json);
                             response.putHeader("content-type", "application/json").end(json.encodePrettily());
                         }
                     } else {
