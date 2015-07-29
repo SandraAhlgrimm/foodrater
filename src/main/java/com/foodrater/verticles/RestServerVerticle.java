@@ -84,16 +84,27 @@ public class RestServerVerticle extends AbstractVerticle {
             sendError(400, response);
         } else {
             try {
-                if (findUserInMongoDB(userName, pw) != null) {
-                    response.putHeader("content-type", "application/json").end((findUserInMongoDB(userName, pw)).encodePrettily());
-                } else {
-                    sendError(400, response);
-                }
-            } catch (InterruptedException e) {
+                JsonObject query = new JsonObject();
+                query.put("user.userName", userName);
+                query.put("user.pw", pw);
+                mongo.find("users", query, res -> {
+                    if (res.succeeded()) {
+                        for (JsonObject json : res.result()) {
+                            LOGGER.info("Found user:" + json.encodePrettily());
+                            json.put(json.getString("uuid"), json);
+                            response.putHeader("content-type", "application/json").end(json.encodePrettily());
+                        }
+                    } else {
+                        LOGGER.error("Couldn't find User.");
+                        sendError(400, response);
+                    }
+                });
+            } catch (Exception e) {
                 LOGGER.error("Couldn't find User.");
                 sendError(400, response);
             }
         }
+
     }
 
     private JsonObject findUserInMongoDB(String userName, String pw) throws InterruptedException {
