@@ -81,7 +81,7 @@ public class RestServerVerticle extends AbstractVerticle {
             String userName = routingContext.request().getParam("username");
             String pw = routingContext.request().getParam("pw");
 
-            if (userName.length() < 1 || pw.length() < 1) {
+            if (userName.length() < 1 || pw.length() < 4) {
                 LOGGER.info("userName.length() < 1 || pw.length() < 1");
                 sendError(400, response);
             } else {
@@ -92,13 +92,15 @@ public class RestServerVerticle extends AbstractVerticle {
                         for (JsonObject json : res.result()) {
                             LOGGER.info("Found user:" + json.encodePrettily());
                             response.putHeader("content-type", "application/json").end(json.encodePrettily());
+                            break;
                         }
+                    } else {
+                        sendError(400, response);
                     }
                 });
             }
         } catch (Exception e) {
             LOGGER.error("Couldn't find User.");
-            sendError(400, response);
         }
     }
 
@@ -136,15 +138,17 @@ public class RestServerVerticle extends AbstractVerticle {
     }
 
     private void getUserInformation(RoutingContext routingContext) {
-        String uuid = routingContext.request().getParam("uuid");
+        String userID = routingContext.request().getParam("userID");
         HttpServerResponse response = routingContext.response();
-        JsonObject query = new JsonObject();
-        query.put("UUID", uuid);
+        JsonObject query = new JsonObject().put("uuid", userID);
+        LOGGER.info("Wanted to get Information for user with userID (uuid): " + query.encodePrettily()) ;
+
         mongo.find("users", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject json : res.result()) {
                     LOGGER.info("Found user:" + json.encodePrettily());
                     response.putHeader("content-type", "application/json").end(json.encodePrettily());
+                    break;
                 }
             } else {
                 sendError(400, response);
