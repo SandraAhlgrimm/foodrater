@@ -67,7 +67,7 @@ public class RestServerVerticle extends AbstractVerticle {
         router.put("/products/:productID").handler(this::handleAddProduct);
         router.get("/products").handler(this::handleListProducts);
         router.get("/initialize").handler(this::setUpInitialData);
-        router.get("/myproducts/:UUID").handler(this::getAllProductsForUser);
+        router.get("/myproducts/:uuid").handler(this::getAllProductsForUser);
         router.get("/users/:userID").handler(this::getUserInformation);
         router.get("/user/login/:username/:pw").handler(this::getUserLogin);
         router.put("/user/register").handler(this::handleAddUser);
@@ -132,7 +132,7 @@ public class RestServerVerticle extends AbstractVerticle {
         } else {
             UUID uuid = new UUID(10000L, 100L);
             JsonObject newUser = new JsonObject();
-            newUser.put("UUID", uuid.toString());
+            newUser.put("uuid", uuid.toString());
             newUser.put("user", user);
             insertUserInMongo(newUser);
             response.putHeader("content-type", "application/json").end(newUser.encodePrettily());
@@ -154,7 +154,7 @@ public class RestServerVerticle extends AbstractVerticle {
         String uuid = routingContext.request().getParam("uuid");
         HttpServerResponse response = routingContext.response();
         JsonObject query = new JsonObject();
-        query.put("UUID", uuid);
+        query.put("uuid", uuid);
         mongo.find("users", query, res -> {
             if (res.succeeded()) {
                 for (JsonObject json : res.result()) {
@@ -170,11 +170,11 @@ public class RestServerVerticle extends AbstractVerticle {
     /**
      * response all products for user as json ->  {prodId:{productjson1}, {productjson2}, ... }
      *
-     * @param routingContext incoming RotingContext with param UUID
+     * @param routingContext incoming RotingContext with param uuid
      */
     private void getAllProductsForUser(RoutingContext routingContext) {
-        String uuid = routingContext.request().getParam("UUID");
-        JsonObject query = new JsonObject().put("UUID", uuid);
+        String uuid = routingContext.request().getParam("uuid");
+        JsonObject query = new JsonObject().put("uuid", uuid);
         HttpServerResponse response = routingContext.response();
         JsonObject allProducts = new JsonObject();
 
@@ -290,7 +290,7 @@ public class RestServerVerticle extends AbstractVerticle {
         HttpServerResponse response = routingContext.response();
         try {
             JsonObject voting = routingContext.getBodyAsJson();
-            JsonObject query = new JsonObject().put("UUID", voting.getString("uuid"));
+            JsonObject query = new JsonObject().put("uuid", voting.getString("uuid"));
             mongo.find("users", query, res -> {
                 if (res.succeeded()) {
                     for (JsonObject user : res.result()) {
