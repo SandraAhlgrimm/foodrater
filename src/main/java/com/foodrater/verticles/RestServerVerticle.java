@@ -268,57 +268,80 @@ public class RestServerVerticle extends AbstractVerticle {
     }
 
     /**
-     * @param routingContext json{uuid: '00-kP', prodID: '426234', rating: '1', lat: '34.65',
-     *                       lng: '-23.523'storeName: 'REWE' }
+     * @param routingContext json{
+     *                       "uuid" : "00000000-0000-000a-0000-0000000003e8",
+     *                       "prodID":"prod7340",
+     *                       "rating":"1",
+     *                       "lat":"34.65",
+     *                       "lng":"-23.523",
+     *                       "storeName":"REWE"
+     *                       }
      */
     private void handleAddProduct(RoutingContext routingContext) {
         HttpServerResponse response = routingContext.response();
         try {
             JsonObject voting = routingContext.getBodyAsJson();
-            JsonObject query = new JsonObject().put("UUID", voting.getString("uuid"));
+            JsonObject query = new JsonObject().put("uuid", voting.getString("uuid"));
+            LOGGER.info("Trying to find :" + query.encodePrettily());
             mongo.find("users", query, res -> {
                 if (res.succeeded()) {
+                    LOGGER.info("res succeeded:" + res.result().toString());
                     for (JsonObject user : res.result()) {
-                        user.put(voting.getString("prodID"), voting);
-                        mongo.insert("user", user, res2 -> {
+                        // Set the author field
+                        JsonObject update = new JsonObject().put("$set", new JsonObject().put("voting", voting));
+                        mongo.update("users", user, update, res2 -> {
                             if (res2.succeeded()) {
                                 LOGGER.info("Updatet user with voting: " + voting);
+                                //response.end();
                             }
                         });
                     }
                 }
             });
 
-            JsonObject query2 = new JsonObject().put("prodID", voting.getString("prodID"));
+            /* JsonObject query2 = new JsonObject().put("prodID", voting.getString("prodID"));
+            LOGGER.info("Trying to find :" + query2.encodePrettily());
             mongo.find("products", query2, res3 -> {
                 if (res3.succeeded()) {
-                    for (JsonObject product : res3.result()) {
-                        if (product.containsKey("rating") && product.containsKey("amount")) {
-                            Float rating = Float.parseFloat(product.getString("rating"));
-                            Integer amount = Integer.parseInt(product.getString("amount"));
-                            Float newRating = rating * amount + Integer.parseInt(voting.getString("rating"));
-                            newRating /= amount + 1;
-                            amount += 1;
-                            product.put("rating", newRating.toString());
-                            product.put("amount", amount.toString());
-                            mongo.insert("products", product, res4 -> {
-                                LOGGER.info("Updated product:" + product);
-                                response.end();
-                            });
-                        } else {
-                            product.put("rating", voting.getString("rating"));
-                            product.put("amount", "1");
-                            mongo.insert("products", product, res5 -> {
-                                LOGGER.info("Inserted Ranking for product:" + product);
-                                response.end();
-                            });
+                    LOGGER.info("res3 succeeded:" + res3.result().toString());
+                    if (res3.toString().length() > 3) {
+                        for (JsonObject product : res3.result()) {
+                            LOGGER.info("product found: " + product.encodePrettily());
+                            if (product.containsKey("rating") && product.containsKey("amount")) {
+                                Float rating = Float.parseFloat(product.getString("rating"));
+                                Integer amount = Integer.parseInt(product.getString("amount"));
+                                Float newRating = rating * amount + Integer.parseInt(voting.getString("rating"));
+                                newRating /= amount + 1;
+                                amount += 1;
+                                product.put("rating", newRating.toString());
+                                product.put("amount", amount.toString());
+                                mongo.insert("products", product, res4 -> {
+                                    LOGGER.info("Updated product:" + product);
+                                    response.end();
+                                });
+                            } else {
+                                product.put("rating", voting.getString("rating"));
+                                product.put("amount", "1");
+                                mongo.insert("products", product, res5 -> {
+                                    LOGGER.info("Inserted Ranking for product:" + product);
+                                    response.end();
+                                });
+                            }
                         }
+                    } else {
+                        JsonObject newInsert = new JsonObject().put("prodID", voting.getString("prodID")).put("rating", voting.getString("rating")).put("amount", "1");
+                        mongo.insert("products", newInsert, res4 -> {
+                            LOGGER.info("Inserted Ranking for product:" + newInsert);
+                            response.end();
+                        });
                     }
                 }
-            });
+            }); */
+            response.end();
         } catch (Exception e) {
             sendError(400, response);
         }
+
     }
 
     private void insertInMongo(JsonObject productAsJson) {
